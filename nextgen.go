@@ -2,7 +2,9 @@ package main
 
 import (
 	"archive/zip"
+	"bufio"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/iancoleman/orderedmap"
 	"github.com/otiai10/copy"
 )
 
@@ -22,10 +25,85 @@ func main()  {
 	fmt.Println(banner)
 	prettyPrint("Let's get you set up with the Next Template.", "special")
 
-	downloadTemplate()
-	unZip()
-	copyFiles()
-	cleanUp()
+	//downloadTemplate()
+	//unZip()
+	//copyFiles()
+	//cleanUp()
+	prettyPrint("Great I've fetched the latest version from you, now I just need your help finishing up.", "special")
+	customizeProject()
+
+
+}
+
+func customizeProject() {
+	var projectName string
+	var projectDescription string
+	var projectAuthor string
+	prettyPrint("What would you like to name your project?", "input")
+	scanner := bufio.NewScanner(os.Stdin)
+	if scanner.Scan() {
+	    projectName = scanner.Text()   
+	}
+	prettyPrint("Take a second to describe your project.", "input")
+	if scanner.Scan() {
+	    projectDescription = scanner.Text()   
+	}
+	prettyPrint("What is your name?", "input")
+	if scanner.Scan() {
+	    projectAuthor = scanner.Text()   
+	}
+
+	// open package.json and replace name, description, author
+
+	file, err := os.Open("package.json")
+	if err != nil {
+		prettyPrint("Error opening package.json", "error")
+		os.Exit(1)
+	}
+
+	// save file to string
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		prettyPrint("Error reading package.json", "error")
+		os.Exit(1)
+	}
+	
+	jsonData := orderedmap.New()
+
+	if err := json.Unmarshal(fileBytes, &jsonData); err != nil {
+		prettyPrint("Error parsing package.json", "error")
+		os.Exit(1)
+	}
+	
+	jsonData.Set("name", projectName)
+	jsonData.Set("description", projectDescription)
+	jsonData.Set("author", projectAuthor)
+
+	// convert json to string
+	jsonString, err := json.Marshal(jsonData)
+	if err != nil {
+		prettyPrint("Error converting json to string", "error")
+		os.Exit(1)
+	}
+
+	defer file.Close()
+
+	// open file again to write
+	file, err = os.OpenFile("package.json", os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		prettyPrint("Error opening package.json", "error")
+		os.Exit(1)
+	}
+
+	// write to file
+	_, err = file.WriteString(string(jsonString))
+	if err != nil {
+		prettyPrint("Error writing to package.json", "error")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	defer file.Close()
 
 }
 
@@ -144,7 +222,7 @@ func prettyPrint(text string, level string) {
 	var Red    = "\033[31m"
 	var Green  = "\033[32m"
 	//var Yellow = "\033[33m"
-	//var Blue   = "\033[34m"
+	var Blue   = "\033[34m"
 	var Purple = "\033[35m"
 	//var Cyan   = "\033[36m"
 	//var Gray   = "\033[37m"
@@ -168,6 +246,9 @@ func prettyPrint(text string, level string) {
 	case "special":
 		levelIcon = "✨"
 		text = Purple + text + Reset
+	case "input":
+		levelIcon = "⌨️"
+		text = Blue + text + Reset
 	}
 	
 
