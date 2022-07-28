@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"bufio"
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -10,12 +11,16 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/iancoleman/orderedmap"
 	"github.com/otiai10/copy"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 //go:embed banner.txt
@@ -25,35 +30,133 @@ func main()  {
 	fmt.Println(banner)
 	prettyPrint("Let's get you set up with the Next Template.", "special")
 
-	//downloadTemplate()
-	//unZip()
-	//copyFiles()
-	//cleanUp()
+	folderCheck()
+	downloadTemplate()
+	unZip()
+	copyFiles()
+	cleanUp()
 	prettyPrint("Great I've fetched the latest version from you, now I just need your help finishing up.", "special")
 	customizeProject()
+
+	prettyPrint("All done! You can now run 'yarn install' to install the dependencies.", "special")
 
 
 }
 
-func customizeProject() {
-	var projectName string
-	var projectDescription string
-	var projectAuthor string
-	prettyPrint("What would you like to name your project?", "input")
-	scanner := bufio.NewScanner(os.Stdin)
-	if scanner.Scan() {
-	    projectName = scanner.Text()   
-	}
-	prettyPrint("Take a second to describe your project.", "input")
-	if scanner.Scan() {
-	    projectDescription = scanner.Text()   
-	}
-	prettyPrint("What is your name?", "input")
-	if scanner.Scan() {
-	    projectAuthor = scanner.Text()   
+func folderCheck() {
+	// make sure the folder is empty
+	prettyPrint("Checking folder...", "info")
+	files, err := os.ReadDir(".")
+	if err != nil {
+		prettyPrint("Error reading directory", "error")
 	}
 
+	if len(files) > 0 {
+		prettyPrint("This folder is not empty. Please create a new folder and run this command again.", "error")
+		os.Exit(1)
+	}
+}
+
+func getInputs()(string, string, string, string, string) {
+	var projectName string
+	var projectPrettyName string
+	var projectDescription string
+	var projectAuthor string
+	var projectID string
+
+	correct := false
+	scanner := bufio.NewScanner(os.Stdin)
+	prettyPrint("What would you like to name your project?", "input")
+	for !correct {
+		if scanner.Scan() {
+		    projectName = scanner.Text()   
+		}
+		// check if string matches regex */
+		matched, err := regexp.MatchString(`^(?:@[a-z0-9-*~][a-z0-9-*._~]*/)?[a-z0-9-~][a-z0-9-._~]*$`, projectName)
+		if err != nil {
+			prettyPrint("Error: " + err.Error(), "error")
+			continue
+		}
+		if matched {
+			correct = true
+		} else {
+			prettyPrint("Sorry, that's not a valid project name. It must match this regex: ", "error")
+			prettyPrint("^(?:@[a-z0-9-*~][a-z0-9-*._~]*/)?[a-z0-9-~][a-z0-9-._~]*$", "help")
+		}
+	}
+
+	// get pretty name by replacing dashes with spaces and capitalizing first letter of each word
+	projectPrettyName = strings.ReplaceAll(projectName, "-", " ")
+	c := cases.Title(language.Und, cases.NoLower)
+	projectPrettyName = c.String(projectPrettyName)
+
+	correct = false
+	
+	prettyPrint("Take a second to describe your project.", "input")
+	for !correct {
+		if scanner.Scan() {
+		    projectDescription = scanner.Text()
+		}
+		// check if string matches regex
+		matched, err := regexp.MatchString(`^[A-Za-z0-9 ]+$`, projectDescription)
+		if err != nil {
+			prettyPrint("Error: " + err.Error(), "error")
+			continue
+		}
+		if matched {
+			correct = true
+		} else {
+			prettyPrint("Sorry, that's not a valid project description. It must match this regex: ", "error")
+			prettyPrint("^[A-Za-z0-9 ]+$", "help")
+		}
+	}
+
+	correct = false
+
+	prettyPrint("What is your name?", "input")
+	for !correct {
+		if scanner.Scan() {
+		    projectAuthor = scanner.Text()   
+		}
+		// check if string matches regex
+		matched, err := regexp.MatchString(`^[A-Za-z0-9 ]+$`, projectAuthor)
+		if err != nil {
+			prettyPrint(err.Error(), "error")
+		}
+		if matched {
+			correct = true
+		} else {
+			prettyPrint("Sorry, that's not a valid author name. It must match this regex: ", "error")
+			prettyPrint(`^[A-Za-z0-9 ]+$`, "help")
+		}
+	}
+
+	correct = false
+
+	prettyPrint("What is your project ID? (com.company.app)", "input")
+	for !correct {
+		if scanner.Scan() {
+			projectID = scanner.Text()	
+		}
+		// check if string matches regex
+		matched, err := regexp.MatchString(`^[a-z]+(\.[a-z]+)+$`, projectID)		
+		if err != nil {
+			prettyPrint(err.Error(), "error")
+		}
+		if matched {
+			correct = true
+		} else {
+			prettyPrint("Sorry, that's not a valid project ID. It must match this regex: ", "error")
+			prettyPrint(`^[a-z]+(\.[a-z]+)+$`, "help")
+		}
+	}	
+	
+	return projectName, projectPrettyName, projectDescription, projectAuthor, projectID
+}
+
+func modifyPackage(projectName string, projectDescription string, projectAuthor string) {
 	// open package.json and replace name, description, author
+	prettyPrint("Updating package.json", "info")
 
 	file, err := os.Open("package.json")
 	if err != nil {
@@ -104,6 +207,141 @@ func customizeProject() {
 	}
 
 	defer file.Close()
+	prettyPrint("Modified package.json", "success")
+}
+
+func modifyTauri(projectName string, projectPrettyName string , projectID string, projectDescription string, projectAuthor string) {
+	// open /src-tauri/tauri.conf.json and replace id and name
+	prettyPrint("Updating tauri.conf.json", "info")
+
+	tauriFile, err := os.Open("src-tauri/tauri.conf.json")
+	if err != nil {
+		prettyPrint("Error opening tauri.conf.json", "error")
+		os.Exit(1)
+	}
+	
+	// save file to string
+	tauriBytes, err := io.ReadAll(tauriFile)
+	if err != nil {
+		prettyPrint("Error reading tauri.conf.json", "error")
+		os.Exit(1)
+	}
+
+	//jsonData := ordered.New()
+
+	var foo map[string]interface{}
+	if err := json.Unmarshal(tauriBytes, &foo); err != nil {
+		prettyPrint("Error parsing tauri.conf.json", "error")
+		os.Exit(1)
+	}
+
+	foo["tauri"].(map[string]interface{})["windows"].([]interface{})[0].(map[string]interface{})["title"] = projectPrettyName
+	foo["tauri"].(map[string]interface{})["identifier"] = projectID
+	foo["package"].(map[string]interface{})["productName"] = projectName
+	foo["tauri"].(map[string]interface{})["bundle"].(map[string]interface{})["identifier"] = projectID
+
+	//convert value to string
+	valueString, err := json.Marshal(foo)
+	if err != nil {
+		prettyPrint("Error converting json to string", "error")
+		os.Exit(1)
+	}
+
+	// write this back to the file
+	defer tauriFile.Close()
+
+	// open file again to write
+	tauriFile, err = os.OpenFile("src-tauri/tauri.conf.json", os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		prettyPrint("Error opening tauri.conf.json", "error")
+		os.Exit(1)
+	}
+
+	// write to file
+	_, err = tauriFile.WriteString(string(valueString))
+	if err != nil {
+		prettyPrint("Error writing to tauri.conf.json", "error")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	tauriFile.Close()
+	prettyPrint("Successfully modified tauri.conf.json", "success")
+
+	// open /src-tauri/Cargo.toml and replace name
+	prettyPrint("Updating Cargo.toml", "info")
+
+	cargoFile, err := os.Open("src-tauri/Cargo.toml")
+	if err != nil {
+		prettyPrint("Error opening Cargo.toml", "error")
+		os.Exit(1)
+	}
+
+	// save file to string
+	cargoBytes, err := io.ReadAll(cargoFile)
+	if err != nil {
+		prettyPrint("Error reading Cargo.toml", "error")
+		os.Exit(1)
+	}
+
+	cargoMap := map[string]interface{}{}
+	_, err = toml.Decode(string(cargoBytes), &cargoMap)
+	if err != nil {
+		prettyPrint("Error parsing Cargo.toml", "error")
+		os.Exit(1)
+	}
+
+	cargoMap["package"].(map[string]interface{})["name"] = projectName
+	cargoMap["package"].(map[string]interface{})["description"] = projectDescription
+	cargoMap["package"].(map[string]interface{})["authors"] = []string{projectAuthor}
+	buf := new(bytes.Buffer)
+	// convert value to string
+	encoder := toml.NewEncoder(buf)
+	err = encoder.Encode(cargoMap)
+	if err != nil {
+		prettyPrint("Error converting json to string", "error")
+		os.Exit(1)
+	}
+
+	// write this back to the file
+	defer cargoFile.Close()
+
+	// open file again to write
+	cargoFile, err = os.OpenFile("src-tauri/Cargo.toml", os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		prettyPrint("Error opening Cargo.toml", "error")
+		os.Exit(1)
+	}
+
+	// write to file
+	_, err = cargoFile.WriteString(buf.String())
+	if err != nil {
+		prettyPrint("Error writing to Cargo.toml", "error")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	cargoFile.Close()
+	prettyPrint("Successfully modified Cargo.toml", "success")
+}
+
+func customizeProject() {
+	prettyPrint("Customizing project", "info")
+
+	projectName, projectPrettyName, projectDescription, projectAuthor, projectID := getInputs()						
+
+	modifyPackage(projectName, projectDescription, projectAuthor)
+
+	modifyTauri(projectName, projectPrettyName, projectID, projectDescription, projectAuthor)
+  
+	prettyPrint("Great we updated your desktop configuration.", "success")
+	
+
+	//jsonData.Set("identifier", projectID)
+	
+	// read in windows from tauri.conf.json using orderedjson
+	
+
+	
+
 
 }
 
@@ -177,15 +415,13 @@ func unZip() {
 	prettyPrint("File unzipped.", "success")
 }
 
-func downloadTemplate() {
-	prettyPrint("Downloading template...", "info")
-
+func tryDownload()(*http.Response, bool) {
 	resp, err := http.Get("https://github.com/AndreCox/next-template/archive/main.zip")
 	if err != nil {
 		prettyPrint("HTTP get error: " + err.Error(), "error")
 	}
 	if resp.StatusCode != 200 {
-		prettyPrint("Error: " + resp.Status, "error")
+		prettyPrint("Error: " + resp.Status, "warning")
 		os.Exit(1)
 	}
 
@@ -194,26 +430,51 @@ func downloadTemplate() {
 
 	if size < 1000000 {
 		prettyPrint("Size is suspiciously small.", "error")
-		os.Exit(2)
+		return resp, true
+	}
+	return resp, false
+}
+
+func downloadTemplate() {
+	prettyPrint("Downloading template...", "info")
+
+	retryCount := 0
+	var resp *http.Response
+	var retry bool
+
+	for {
+		resp, retry = tryDownload()
+		if retry {
+			prettyPrint("Retrying...", "info")
+			retryCount++
+			if retryCount > 5 {
+				prettyPrint("Failed to download template.", "error")
+				os.Exit(1)
+			}
+			continue
+		}
+		break
 	}
 
-	defer resp.Body.Close()
-    // Create the file
-    out, err := os.Create("next.zip")
-    if err != nil {
-        prettyPrint("Error creating file: " + err.Error(), "error")
-		os.Exit(2)
-    }
+		
+    	// Create the file
+    	out, err := os.Create("next.zip")
+    	if err != nil {
+    	    prettyPrint("Error creating file: " + err.Error(), "error")
+			os.Exit(2)
+    	}
 
-    defer out.Close()
+    	defer out.Close()
 
-    // Write the body to file
-    _, err = io.Copy(out, resp.Body)
-    if err != nil {
-		prettyPrint("Error downloading template: " + err.Error(), "error")
-		os.Exit(5)
-	}
-	prettyPrint("Template downloaded.", "success")
+    	// Write the body to file
+    	_, err = io.Copy(out, resp.Body)
+    	if err != nil {
+			prettyPrint("Error downloading template: " + err.Error(), "error")
+			os.Exit(5)
+		}
+		defer resp.Body.Close()
+		prettyPrint("Template downloaded.", "success")
+	
 }
 
 func prettyPrint(text string, level string) {
@@ -224,7 +485,7 @@ func prettyPrint(text string, level string) {
 	//var Yellow = "\033[33m"
 	var Blue   = "\033[34m"
 	var Purple = "\033[35m"
-	//var Cyan   = "\033[36m"
+	var Cyan   = "\033[36m"
 	//var Gray   = "\033[37m"
 	//var White  = "\033[97m"
 	var Orange = "\033[38;5;208m"
@@ -249,6 +510,9 @@ func prettyPrint(text string, level string) {
 	case "input":
 		levelIcon = "⌨️"
 		text = Blue + text + Reset
+	case "help":
+		levelIcon = "❓"
+		text = Cyan + text + Reset
 	}
 	
 
