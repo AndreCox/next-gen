@@ -8,3 +8,4 @@ Simply download the appropriate version from the releases tab and add it to your
 ```
 nextgen
 ```
+Then the program will guide you through installation.
