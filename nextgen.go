@@ -19,11 +19,14 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/buger/jsonparser"
+	"github.com/creativeprojects/go-selfupdate"
 	"github.com/iancoleman/orderedmap"
 	"github.com/otiai10/copy"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
+
+var version = "2.1.0"
 
 //go:embed banner.txt
 var banner string
@@ -31,6 +34,11 @@ var banner string
 func main()  {
 	fmt.Println("\033[36m" + banner + "\033[0m")
 	prettyPrint("Let's get you set up with the Next Template.", "special")
+
+	// check if there is a new version
+	prettyPrint("Checking for updates...", "info")
+	update(version)
+
 
 	if !folderCheck() {
 		if existingProjectCheck() {
@@ -649,4 +657,33 @@ func prettyPrint(text string, level string) {
 
 	logtime := time.Now().Format("2006-01-02 15:04:05")
 	fmt.Println(levelIcon + " [" + logtime + "] " + text)
+}
+
+
+func update(version string) {
+	latest, found, err := selfupdate.DetectLatest("AndreCox/next-gen")
+	if err != nil {
+		prettyPrint("An error occurred while detecting version", "error")
+		return
+	}
+	if !found {
+		prettyPrint("Latest version could not be found from github repository", "error")
+		return
+	}
+
+	if latest.LessOrEqual(version) {
+		prettyPrint("Current version (" + version + ") is the latest", "info")
+		return 
+	}
+
+	exe, err := os.Executable()
+	if err != nil {
+		prettyPrint("An error occurred while detecting executable path", "error")
+		return 
+	}
+	if err := selfupdate.UpdateTo(latest.AssetURL, latest.AssetName, exe); err != nil {
+		prettyPrint("An error occurred while updating binary", "error")
+		return 
+	}
+	prettyPrint("Successfully updated to version " + latest.Version() , "success")
 }
