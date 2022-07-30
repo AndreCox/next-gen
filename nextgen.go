@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -48,9 +49,69 @@ func main()  {
 	prettyPrint("Great I've fetched the latest version from you, now I just need your help finishing up.", "special")
 	customizeProject()
 
+	prettyPrint("Done Customization!", "success")
+	prettyPrint("Now we are going to try to see if you have git installed. If you do, we will set up version control for you.", "info")
+
+	if checkGit() {
+		prettyPrint("Git is installed. Setting up version control.", "success")
+		setupGit()
+		prettyPrint("Great we set up version control for you. You can now run git commands to manage your project.", "success")
+	} else {
+		prettyPrint("Git is not installed. Skipping version control.", "info")
+	}
+
+	// check if yarn is installed
+	prettyPrint("Now we are going to try to see if you have yarn installed. If you do, we will install dependencies for you.", "info")
+	if checkYarn() {
+		prettyPrint("Yarn is installed. Installing dependencies.", "success")
+		installDependencies()
+		prettyPrint("Great we installed dependencies for you. You can now run yarn commands to manage your project.", "success")
+		os.Exit(0)
+	} else {
+	prettyPrint("Yarn is not installed. Skipping dependency installation.", "warning")
 	prettyPrint("All done! You can now run 'yarn install' to install the dependencies.", "special")
+	os.Exit(0)
+	}
 
 
+}
+
+func setupGit() {
+	exec.Command("git", "init").Run()
+	exec.Command("git", "add", ".").Run()
+	exec.Command("git", "commit", "-m", "Initial commit").Run()
+}
+
+func installDependencies() {
+	// run yarn install
+	exec.Command("yarn", "install").Run()
+}
+
+func checkYarn() bool {
+	if !isCommandAvailable("yarn") {
+		prettyPrint("Yarn is not installed. We won't be installing dependencies.", "warning")
+		return false
+	}
+		prettyPrint("Yarn is installed. We will install dependencies.", "success")
+		return true
+}
+
+func checkGit() bool {
+	// check if git is installed
+	if !isCommandAvailable("git") {
+		prettyPrint("Git is not installed. We won't be setting up version control.", "warning")
+		return false
+	}
+		prettyPrint("Git is installed. We will set up version control.", "success")
+		return true
+}
+
+func isCommandAvailable(name string) bool {
+	cmd := exec.Command(name, "--version")
+	if err := cmd.Run(); err != nil {
+			return false
+	}
+	return true
 }
 
 func existingProjectCheck()(bool) {
