@@ -26,14 +26,14 @@ import (
 	"golang.org/x/text/language"
 )
 
-var version = "2.1.0"
+var version = "2.1.1"
 
 //go:embed banner.txt
 var banner string
 
 func main()  {
 	fmt.Println("\033[36m" + banner + "\033[0m")
-	prettyPrint("Let's get you set up with the Next Template.", "special")
+	prettyPrint("Let's get you set up with the Next Template!", "special")
 
 	// check if there is a new version
 	prettyPrint("Checking for updates...", "info")
