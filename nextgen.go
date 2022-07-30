@@ -38,7 +38,7 @@ func main()  {
 			prettyPrint("Done!", "success")
 			os.Exit(0)
 		}
-		prettyPrint("This folder is not empty. Please create a new folder and run this command again.", "error")
+		prettyPrint("This folder does not contain a Next Gen project. Please create a new folder and run this command again.", "error")
 		os.Exit(1)
 	}
 	downloadTemplate()
@@ -118,7 +118,7 @@ func folderCheck()(bool) {
 	}
 
 	if len(files) > 0 {
-		prettyPrint("This folder is not empty. Checking if an existing project is here.", "error")
+		prettyPrint("This folder is not empty. Checking if an existing project is here.", "info")
 		return false
 	}
 	prettyPrint("Folder is empty.", "success")
@@ -258,12 +258,6 @@ func modifyPackage(projectName string, projectDescription string, projectAuthor 
 		prettyPrint("Error opening package.json", "error")
 		os.Exit(1)
 	}
-
-	// save the last time the file was modified
-	lastModified := time.Now().Format(time.RFC3339)
-
-
-	prettyPrint(lastModified, "info")
 
 
 	// convert json to string
