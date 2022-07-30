@@ -13,21 +13,23 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/buger/jsonparser"
 	"github.com/creativeprojects/go-selfupdate"
 	"github.com/iancoleman/orderedmap"
-	"github.com/jpillora/overseer"
+	"github.com/kardianos/osext"
 	"github.com/otiai10/copy"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
-var version = "2.2.2"
+var version = "2.3.0"
 
 //go:embed banner.txt
 var banner string
@@ -688,5 +690,40 @@ func update(version string) {
 	}
 	prettyPrint("Successfully updated to version " + latest.Version() , "success")
 	prettyPrint("Restarting...", "info")
-	overseer.Restart()
+	
+	cmd := exec.Command(exe)
+
+	// start the process
+	if err := cmd.Start(); err != nil {
+		prettyPrint("An error occurred while restarting", "error")
+		os.Exit(1)
+		return 
+	}
+
+	// exit the current process
+	RestartSelf()
+
+}
+
+func RestartSelf() error {
+    self, err := osext.Executable()
+    if err != nil {
+        return err
+    }
+    args := os.Args
+    env := os.Environ()
+    // Windows does not support exec syscall.
+    if runtime.GOOS == "windows" {
+        cmd := exec.Command(self, args[1:]...)
+        cmd.Stdout = os.Stdout
+        cmd.Stderr = os.Stderr
+        cmd.Stdin = os.Stdin
+        cmd.Env = env
+        err := cmd.Run()
+        if err == nil {
+            os.Exit(0)
+        }
+        return err
+    }
+    return syscall.Exec(self, args, env)
 }
