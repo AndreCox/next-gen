@@ -27,7 +27,7 @@ import (
 	"golang.org/x/text/language"
 )
 
-var version = "2.2.1"
+var version = "2.2.2"
 
 //go:embed banner.txt
 var banner string
@@ -462,7 +462,7 @@ func modifyTauri(projectName string, projectPrettyName string , projectID string
 }
 
 func customizeProject() {
-	prettyPrint("Customizing project", "info")
+	prettyPrint("Customizing project.", "info")
 
 	projectName, projectPrettyName, projectDescription, projectAuthor, projectID := getInputs()						
 
