@@ -77,13 +77,12 @@ func main()  {
 		prettyPrint("Yarn is installed. Installing dependencies.", "success")
 		installDependencies()
 		prettyPrint("Great we installed dependencies for you. You can now run yarn commands to manage your project.", "success")
-		os.Exit(0)
 	} else {
 	prettyPrint("Yarn is not installed. Skipping dependency installation.", "warning")
 	prettyPrint("All done! You can now run 'yarn install' to install the dependencies.", "special")
-	os.Exit(0)
 	}
 
+	prettyPrint("Want to learn more about the Next Template? Check out the docs at https://github.com/AndreCox/next-template", "special")
 
 }
 
