@@ -21,12 +21,13 @@ import (
 	"github.com/buger/jsonparser"
 	"github.com/creativeprojects/go-selfupdate"
 	"github.com/iancoleman/orderedmap"
+	"github.com/jpillora/overseer"
 	"github.com/otiai10/copy"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
-var version = "2.1.1"
+var version = "2.2.1"
 
 //go:embed banner.txt
 var banner string
@@ -686,4 +687,6 @@ func update(version string) {
 		return 
 	}
 	prettyPrint("Successfully updated to version " + latest.Version() , "success")
+	prettyPrint("Restarting...", "info")
+	overseer.Restart()
 }
