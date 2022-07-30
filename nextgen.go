@@ -35,7 +35,11 @@ func main()  {
 		if existingProjectCheck() {
 			prettyPrint("You already have a next-gen project in this folder. We can customize it for you", "info")
 			customizeProject()
+			prettyPrint("Done!", "success")
+			os.Exit(0)
 		}
+		prettyPrint("This folder is not empty. Please create a new folder and run this command again.", "error")
+		os.Exit(1)
 	}
 	downloadTemplate()
 	unZip()
