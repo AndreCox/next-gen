@@ -28,7 +28,7 @@ import (
 var banner string
 
 func main()  {
-	fmt.Println(banner)
+	fmt.Println("\033[36m" + banner + "\033[0m")
 	prettyPrint("Let's get you set up with the Next Template.", "special")
 
 	if !folderCheck() {
