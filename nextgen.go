@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/buger/jsonparser"
 	"github.com/iancoleman/orderedmap"
 	"github.com/otiai10/copy"
 	"golang.org/x/text/cases"
@@ -30,7 +31,12 @@ func main()  {
 	fmt.Println(banner)
 	prettyPrint("Let's get you set up with the Next Template.", "special")
 
-	folderCheck()
+	if !folderCheck() {
+		if existingProjectCheck() {
+			prettyPrint("You already have a next-gen project in this folder. We can customize it for you", "info")
+			customizeProject()
+		}
+	}
 	downloadTemplate()
 	unZip()
 	copyFiles()
@@ -43,7 +49,63 @@ func main()  {
 
 }
 
-func folderCheck() {
+func existingProjectCheck()(bool) {
+	// check if there is already a tauri.conf.json
+	// if there is, ask if they want to overwrite
+	// if not, continue
+	files, err := os.ReadDir(".")
+	if err != nil {
+		prettyPrint("Error reading directory", "error")
+	}
+	// check if files contains package.json
+	for _, file := range files {
+		if file.Name() == "package.json" {
+			prettyPrint("This folder already contains a package.json file. Checking if this is a next-gen project", "info")
+
+			if checkPackagejson() {
+				return true
+			} else {
+				prettyPrint("This is not a next-gen project. Please create a new folder and run this command again.", "error")
+				os.Exit(1)
+			}
+		}
+
+	}
+	return false
+}
+
+func checkPackagejson()(bool) {
+	// open package.json and check if it has the field next-gen
+	file, err := os.Open("package.json")
+	if err != nil {
+		prettyPrint("Error opening package.json", "error")
+		os.Exit(1)
+	}
+
+	// save file to string
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		prettyPrint("Error reading package.json", "error")
+		os.Exit(1)
+	}
+	
+	id, err := jsonparser.GetString(fileBytes, "next-gen", "id")
+	if err != nil {
+		prettyPrint("Error reading next-gen ID.", "error")
+		os.Exit(1)
+	}
+
+	if id == "4326dec8a92b394498ebe4f542833e5a" {
+		return true
+	}
+
+	return false
+
+
+
+}
+
+func folderCheck()(bool) {
 	// make sure the folder is empty
 	prettyPrint("Checking folder...", "info")
 	files, err := os.ReadDir(".")
@@ -52,9 +114,11 @@ func folderCheck() {
 	}
 
 	if len(files) > 0 {
-		prettyPrint("This folder is not empty. Please create a new folder and run this command again.", "error")
-		os.Exit(1)
+		prettyPrint("This folder is not empty. Checking if an existing project is here.", "error")
+		return false
 	}
+	prettyPrint("Folder is empty.", "success")
+	return true
 }
 
 func getInputs()(string, string, string, string, string) {
@@ -182,13 +246,6 @@ func modifyPackage(projectName string, projectDescription string, projectAuthor 
 	jsonData.Set("description", projectDescription)
 	jsonData.Set("author", projectAuthor)
 
-	// convert json to string
-	jsonString, err := json.Marshal(jsonData)
-	if err != nil {
-		prettyPrint("Error converting json to string", "error")
-		os.Exit(1)
-	}
-
 	defer file.Close()
 
 	// open file again to write
@@ -198,11 +255,24 @@ func modifyPackage(projectName string, projectDescription string, projectAuthor 
 		os.Exit(1)
 	}
 
+	// save the last time the file was modified
+	lastModified := time.Now().Format(time.RFC3339)
+
+
+	prettyPrint(lastModified, "info")
+
+
+	// convert json to string
+	jsonString, err := json.Marshal(jsonData)
+	if err != nil {
+		prettyPrint("Error converting json to string", "error")
+		os.Exit(1)
+	}
+
 	// write to file
-	_, err = file.WriteString(string(jsonString))
+	_, err = file.Write(jsonString)
 	if err != nil {
 		prettyPrint("Error writing to package.json", "error")
-		fmt.Println(err)
 		os.Exit(1)
 	}
 
