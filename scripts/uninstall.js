@@ -3,7 +3,7 @@ const fs = require("fs");
 
 var platform = os.platform();
 
-if (platform === "windows") {
+if (platform === "win32") {
   // remove the nextgen folder
   fs.rmSync(`${os.homedir()}/AppData/Local/nextgen`, { recursive: true });
 } else if (platform === "linux") {

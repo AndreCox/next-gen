@@ -1,0 +1,6 @@
+banner.txt
+.github/*
+go.mod
+go.sum
+nextgen.go
+.vscode
