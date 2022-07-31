@@ -1,0 +1,37 @@
+{
+  "name": "nextgen",
+  "version": "2.3.1",
+  "description": "A package to create cross platform apps easily on desktop mobile and web.",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "go-npm install",
+    "preuninstall": "go-npm uninstall"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AndreCox/next-gen.git"
+  },
+  "keywords": [
+    "nextjs",
+    "template",
+    "cli",
+    "tool",
+    "generator"
+  ],
+  "dependencies": {
+    "nextgen": "2.3.1",
+    "global": "^4.4.0",
+    "go-npm": "^0.1.9"
+  },
+  "author": "Andre Cox",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AndreCox/next-gen/issues"
+  },
+  "homepage": "https://github.com/AndreCox/next-gen#readme",
+  "goBinary": {
+    "name": "html-serve",
+    "path": "./bin",
+    "url": "https://github.com/AndreCox/next-gen/releases/download/v{{version}}/html-serve_{{version}}_{{platform}}_{{arch}}.tar.gz"
+  }
+}
