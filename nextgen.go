@@ -29,7 +29,7 @@ import (
 	"golang.org/x/text/language"
 )
 
-var version = "2.3.2"
+var version = "2.4.0"
 
 //go:embed banner.txt
 var banner string

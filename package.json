@@ -1,0 +1,36 @@
+{
+  "name": "nxgen",
+  "version": "2.3.3",
+  "description": "A package to create cross platform apps easily on desktop mobile and web.",
+  "public": true,
+  "scripts": {
+    "postinstall": "scripts/install.js",
+    "preuninstall": "scripts/uninstall.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AndreCox/next-gen.git"
+  },
+  "keywords": [
+    "nextjs",
+    "template",
+    "cli",
+    "tool",
+    "generator"
+  ],
+  "dependencies": {
+    "decompress": "^4.2.1",
+    "download-github-release": "^0.3.2"
+  },
+  "author": "Andre Cox",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AndreCox/next-gen/issues"
+  },
+  "homepage": "https://github.com/AndreCox/next-gen#readme",
+  "goBinary": {
+    "name": "nextgen",
+    "path": "./bin",
+    "url": "https://github.com/AndreCox/next-gen/releases/download/v{{version}}/nextgen-v{{version}}-{{platform}}-{{arch}}.tar.gz"
+  }
+}
