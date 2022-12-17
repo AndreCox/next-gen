@@ -2,6 +2,8 @@
 A project generator for my next template!
 The whole point of the next template was to make it easy and fast to start making apps, however it was always a pain creating multiple git repos for all my projects and modifying all the files to set up the project correctly making sure you don't miss any config files.
 
+I've finaly got around to updating this to nextjs 13, Expect your build times to improve massivly. 
+
 # More about my Template
 
 ## [Read about it here](https://github.com/AndreCox/next-template)
@@ -12,7 +14,7 @@ The whole point of the next template was to make it easy and fast to start makin
 2. 📱 Fully cross platform, you can create your web app, then deploy to both IOS and Android
 3. 🪶 Comes with Tailwindcss by default; no more thinking up css class names while still being lightweight
 4. 📄 Github Pages support, simply push your code and your website will be automatically deployed.
-5. ⏭️ NEW! Next Js seriously makes development way easier. The major update from previous template.
+5. ⏭️ Next Js seriously makes development way easier. The major update from previous template.
 6. 🖥️ NEW! Tauri Support Build for Windows Mac and Linux
 
 # How to use
