@@ -57,3 +57,7 @@ You will be prompted for some information about your product as follows.
 After this it will modify all the necesarry files.
 Next if the software detects you have git installed verson control will be automatically set up.
 Finally it will install all the necessary dependencies for you if Yarn is detected.
+
+## A note on Windows Defender
+
+Right now Go Programs are often detected as malware, This however is a false positive. You can read the source yourself to confirm that there is nothing malicious inside. If you're really paranoid you can just use the template directly and modify all of the parameters manualy.
